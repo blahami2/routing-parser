@@ -5,15 +5,11 @@
  */
 package cz.certicon.routing.parser.data;
 
-import java.io.IOException;
-
 /**
  *
  * @author Michael Blaha {@literal <michael.blaha@certicon.cz>}
  */
-public interface OsmDataSource {
+public interface OsmDataTargetFactory {
 
-    public boolean read( OsmDataTarget target ) throws IOException;
-
-    public boolean read( OsmDataTargetFactory targetFactory ) throws IOException;
+    public OsmDataTarget createOsmDataTarget();
 }

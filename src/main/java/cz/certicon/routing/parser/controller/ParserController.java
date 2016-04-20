@@ -7,8 +7,10 @@ package cz.certicon.routing.parser.controller;
 
 import cz.certicon.routing.parser.data.OsmDataSource;
 import cz.certicon.routing.parser.data.OsmDataTarget;
+import cz.certicon.routing.parser.data.OsmDataTargetFactory;
 import cz.certicon.routing.parser.view.Input;
 import cz.certicon.routing.parser.view.Output;
+import cz.certicon.routing.parser.view.cmd.CommandLineInput;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,13 +26,17 @@ public class ParserController {
     private Output output;
     // data
     private OsmDataSource osmDataSource;
-    private OsmDataTarget osmDataTarget;
+    private OsmDataTargetFactory osmDataTargetFactory;
     // model
+    // settings
+    private boolean parallel = true;
 
     public ParserController() {
+        this.input = new CommandLineInput();
     }
 
     public void run( String... args ) {
+        System.out.println( "Parsing arguments..." );
         input.parseArgs( args ).forEach( c -> {
             try {
                 c.execute( this );
@@ -39,7 +45,12 @@ public class ParserController {
             }
         } );
         try {
-            osmDataSource.read( osmDataTarget );
+            System.out.println( "Reading..." );
+            if ( parallel ) {
+                osmDataSource.read( osmDataTargetFactory );
+            } else {
+                osmDataSource.read( osmDataTargetFactory.createOsmDataTarget() );
+            }
         } catch ( IOException ex ) {
             Logger.getLogger( ParserController.class.getName() ).log( Level.SEVERE, null, ex );
         }
@@ -53,12 +64,20 @@ public class ParserController {
         this.osmDataSource = osmDataSource;
     }
 
-    public OsmDataTarget getOsmDataTarget() {
-        return osmDataTarget;
+    public OsmDataTargetFactory getOsmDataTargetFactory() {
+        return osmDataTargetFactory;
     }
 
-    public void setOsmDataTarget( OsmDataTarget osmDataTarget ) {
-        this.osmDataTarget = osmDataTarget;
+    public void setOsmDataTargetFactory( OsmDataTargetFactory osmDataTargetFactory ) {
+        this.osmDataTargetFactory = osmDataTargetFactory;
+    }
+
+    public boolean isParallel() {
+        return parallel;
+    }
+
+    public void setParallel( boolean parallel ) {
+        this.parallel = parallel;
     }
 
 }

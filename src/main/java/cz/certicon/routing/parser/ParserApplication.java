@@ -6,6 +6,7 @@
 package cz.certicon.routing.parser;
 
 import cz.certicon.routing.parser.controller.ParserController;
+import java.util.concurrent.ThreadFactory;
 
 /**
  *
@@ -19,6 +20,15 @@ public class ParserApplication {
     public static void main( String[] args ) {
         ParserController controller = new ParserController();
         controller.run( args );
+        new ThreadFactory() {
+            @Override
+            public Thread newThread( Runnable r ) {
+                throw new UnsupportedOperationException( "Not supported yet." ); //To change body of generated methods, choose Tools | Templates.
+            }
+        };
+//        for ( String arg : args ) {
+//            System.out.println( "'" + arg + "'" );
+//        }
     }
 
 }

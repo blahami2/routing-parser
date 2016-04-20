@@ -7,8 +7,7 @@ package cz.certicon.routing.parser.model.commands;
 
 import cz.certicon.routing.parser.model.Command;
 import cz.certicon.routing.parser.controller.ParserController;
-import cz.certicon.routing.parser.data.OsmDataTarget;
-import cz.certicon.routing.parser.data.database.PostgresqlOsmDataTarget;
+import cz.certicon.routing.parser.data.database.PostgresqlOsmDataTargetFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -31,8 +30,7 @@ public class TargetDbFileCommand implements Command {
         File file = new File( filename );
         Properties properties = new Properties();
         properties.load( new FileInputStream( file ) );
-        OsmDataTarget osmDataTarget = new PostgresqlOsmDataTarget( properties );
-        controller.setOsmDataTarget( osmDataTarget );
+        controller.setOsmDataTargetFactory( new PostgresqlOsmDataTargetFactory( properties ) );
     }
 
 }

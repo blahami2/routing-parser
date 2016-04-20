@@ -10,5 +10,29 @@ package cz.certicon.routing.parser.model.entity.osm;
  * @author Michael Blaha {@literal <michael.blaha@certicon.cz>}
  */
 public class OsmWayNode {
-    
+
+    /*    way_id bigint NOT NULL,
+    node_id bigint NOT NULL,
+    sequence_id int NOT NULL*/
+    private final long wayId;
+    private final long nodeId;
+    private final int sequenceId;
+
+    public OsmWayNode( long wayId, long nodeId, int sequenceId ) {
+        this.wayId = wayId;
+        this.nodeId = nodeId;
+        this.sequenceId = sequenceId;
+    }
+
+    public long getWayId() {
+        return wayId;
+    }
+
+    public long getNodeId() {
+        return nodeId;
+    }
+
+    public int getSequenceId() {
+        return sequenceId;
+    }
 }

@@ -19,6 +19,14 @@ public class ArgumentsParser {
     public static List<Command> parse( String... args ) {
         List<Command> commands = new ArrayList<>();
         for ( String arg : args ) {
+            if ( arg.startsWith( "parallel=" ) ) {
+                commands.add( new SourcePbfFileCommand( arg.substring( "source_pbf_file=".length() ) ) );
+            } else if ( arg.startsWith( "" ) ) {
+            } else {
+
+            }
+        }
+        for ( String arg : args ) {
             if ( arg.startsWith( "source_pbf_file=" ) ) {
                 commands.add( new SourcePbfFileCommand( arg.substring( "source_pbf_file=".length() ) ) );
             } else if ( arg.startsWith( "target_db_file=" ) ) {

@@ -6,6 +6,7 @@
 package cz.certicon.routing.parser.data.database;
 
 import cz.certicon.routing.data.basic.database.AbstractDatabase;
+import cz.certicon.routing.data.basic.database.AbstractServerDatabase;
 import cz.certicon.routing.model.basic.Pair;
 import cz.certicon.routing.parser.data.OsmDataTarget;
 import cz.certicon.routing.parser.model.entity.osm.*;
@@ -119,7 +120,7 @@ public class PostgresqlOsmDataTarget implements OsmDataTarget {
 
     }
 
-    private static class PostrgresqlOsmDatabase extends AbstractDatabase<Pair<String, String>, String> {
+    private static class PostrgresqlOsmDatabase extends AbstractServerDatabase<Pair<String, String>, String> {
 
         private CopyManager copyManager = null;
 

@@ -24,11 +24,11 @@ import java.util.Properties;
  *
  * @author Michael Blaha {@literal <michael.blaha@certicon.cz>}
  */
-public class PostgresqlOsmDataSource implements ParsedDataSource {
+public class PostgresqlParsedDataSource implements ParsedDataSource {
 
     private final PostrgresqlOsmDatabase database;
 
-    public PostgresqlOsmDataSource( Properties connectionProperties ) {
+    public PostgresqlParsedDataSource( Properties connectionProperties ) {
         this.database = new PostrgresqlOsmDatabase( connectionProperties );
     }
 

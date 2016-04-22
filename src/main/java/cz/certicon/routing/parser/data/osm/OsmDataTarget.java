@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package cz.certicon.routing.parser.data;
+package cz.certicon.routing.parser.data.osm;
 
 import cz.certicon.routing.parser.model.entity.osm.OsmRelation;
 import cz.certicon.routing.parser.model.entity.osm.OsmNode;

@@ -3,13 +3,17 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package cz.certicon.routing.parser.data;
+package cz.certicon.routing.parser.data.osm;
+
+import java.io.IOException;
 
 /**
  *
  * @author Michael Blaha {@literal <michael.blaha@certicon.cz>}
  */
-public interface OsmDataTargetFactory {
+public interface OsmDataSource {
 
-    public OsmDataTarget createOsmDataTarget();
+    public boolean read( OsmDataTarget target ) throws IOException;
+
+    public boolean read( OsmDataTargetFactory targetFactory ) throws IOException;
 }

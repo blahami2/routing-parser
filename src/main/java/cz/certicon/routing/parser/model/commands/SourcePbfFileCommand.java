@@ -8,8 +8,8 @@ package cz.certicon.routing.parser.model.commands;
 import cz.certicon.routing.data.basic.FileSource;
 import cz.certicon.routing.parser.model.Command;
 import cz.certicon.routing.parser.controller.ParserController;
-import cz.certicon.routing.parser.data.OsmDataSource;
-import cz.certicon.routing.parser.data.pbf.OsmPbfDataSource;
+import cz.certicon.routing.parser.data.osm.OsmDataSource;
+import cz.certicon.routing.parser.data.osm.pbf.OsmPbfDataSource;
 import java.io.File;
 import java.io.IOException;
 

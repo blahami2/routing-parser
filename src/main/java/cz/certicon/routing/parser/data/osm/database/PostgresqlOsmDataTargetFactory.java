@@ -3,10 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package cz.certicon.routing.parser.data.database;
+package cz.certicon.routing.parser.data.osm.database;
 
-import cz.certicon.routing.parser.data.OsmDataTarget;
-import cz.certicon.routing.parser.data.OsmDataTargetFactory;
+import cz.certicon.routing.parser.data.osm.OsmDataTarget;
+import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.logging.Level;

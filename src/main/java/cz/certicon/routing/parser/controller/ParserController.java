@@ -5,9 +5,9 @@
  */
 package cz.certicon.routing.parser.controller;
 
-import cz.certicon.routing.parser.data.OsmDataSource;
-import cz.certicon.routing.parser.data.OsmDataTarget;
-import cz.certicon.routing.parser.data.OsmDataTargetFactory;
+import cz.certicon.routing.parser.data.osm.OsmDataSource;
+import cz.certicon.routing.parser.data.osm.OsmDataTarget;
+import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
 import cz.certicon.routing.parser.view.Input;
 import cz.certicon.routing.parser.view.Output;
 import cz.certicon.routing.parser.view.cmd.CommandLineInput;

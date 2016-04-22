@@ -7,7 +7,7 @@ package cz.certicon.routing.parser.model.commands;
 
 import cz.certicon.routing.parser.model.Command;
 import cz.certicon.routing.parser.controller.ParserController;
-import cz.certicon.routing.parser.data.database.PostgresqlOsmDataTargetFactory;
+import cz.certicon.routing.parser.data.osm.database.PostgresqlOsmDataTargetFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

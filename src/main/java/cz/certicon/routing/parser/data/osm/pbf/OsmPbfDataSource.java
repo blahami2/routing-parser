@@ -3,12 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package cz.certicon.routing.parser.data.pbf;
+package cz.certicon.routing.parser.data.osm.pbf;
 
 import cz.certicon.routing.data.DataSource;
-import cz.certicon.routing.parser.data.OsmDataSource;
-import cz.certicon.routing.parser.data.OsmDataTarget;
-import cz.certicon.routing.parser.data.OsmDataTargetFactory;
+import cz.certicon.routing.parser.data.osm.OsmDataSource;
+import cz.certicon.routing.parser.data.osm.OsmDataTarget;
+import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
 import cz.certicon.routing.parser.model.entity.osm.*;
 import cz.certicon.routing.utils.measuring.TimeMeasurement;
 import cz.certicon.routing.utils.measuring.TimeUnits;

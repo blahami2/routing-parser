@@ -3,12 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package cz.certicon.routing.parser.data.database;
+package cz.certicon.routing.parser.data.osm.database;
 
 import cz.certicon.routing.data.basic.database.AbstractDatabase;
 import cz.certicon.routing.data.basic.database.AbstractServerDatabase;
 import cz.certicon.routing.model.basic.Pair;
-import cz.certicon.routing.parser.data.OsmDataTarget;
+import cz.certicon.routing.parser.data.osm.OsmDataTarget;
 import cz.certicon.routing.parser.model.entity.osm.*;
 import java.io.IOException;
 import java.io.PushbackReader;

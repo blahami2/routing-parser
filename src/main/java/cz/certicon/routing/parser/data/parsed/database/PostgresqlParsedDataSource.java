@@ -6,9 +6,6 @@
 package cz.certicon.routing.parser.data.parsed.database;
 
 import cz.certicon.routing.data.basic.database.AbstractServerDatabase;
-import cz.certicon.routing.parser.data.osm.OsmDataSource;
-import cz.certicon.routing.parser.data.osm.OsmDataTarget;
-import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
 import cz.certicon.routing.parser.data.parsed.ParsedDataSource;
 import cz.certicon.routing.parser.data.parsed.ParsedDataTarget;
 import cz.certicon.routing.parser.model.entity.parsed.ParsedEdge;
@@ -26,42 +23,21 @@ import java.util.Properties;
  */
 public class PostgresqlParsedDataSource implements ParsedDataSource {
 
-    private final PostrgresqlOsmDatabase database;
+    private final PostgresqlDatabase database;
 
     public PostgresqlParsedDataSource( Properties connectionProperties ) {
-        this.database = new PostrgresqlOsmDatabase( connectionProperties );
+        this.database = new PostgresqlDatabase( connectionProperties );
     }
 
     @Override
     public void read( ParsedDataTarget target ) throws IOException {
         ResultSet rs;
+        target.open();
         try {
             {
-                rs = database.read( "SELECT DISTINCT data_id, osm_id, is_paid, length, is_forward, speed, ST_Text(geom) FROM edges_view ORDER BY data_id;" );
-                long id = -1;
-                int speedFw = -1;
-                int speedBw = -1;
+                rs = database.read( "SELECT DISTINCT d.id, d.osm_id, d.is_paid, d.length,  e1.speed AS speed_fw, e2.speed AS speed_bw, ST_AsText(d.geom) AS geom FROM (SELECT * FROM edges_routing WHERE is_forward IS TRUE) AS e1 FULL OUTER JOIN (SELECT * FROM edges_routing WHERE is_forward IS FALSE) AS e2 ON e1.data_id = e2.data_id JOIN edges_data_routing d ON (e1.data_id = d.id OR e2.data_id = d.id) ORDER BY d.id;" );
                 while ( rs.next() ) {
-                    boolean isForward = rs.getBoolean( "is_forward" );
-                    if ( id != -1 ) {
-                        if ( ( id != rs.getLong( "data_id" ) ) || ( isForward && speedFw != -1 ) || ( speedFw == -1 && speedBw == -1 ) ) {
-                            throw new AssertionError( "Wrong SQL query" );
-                        }
-                        if ( isForward ) {
-                            speedFw = rs.getInt( "speed" );
-                        } else {
-                            speedBw = rs.getInt( "speed" );
-                        }
-                        target.insert( new ParsedEdgeData( id, rs.getLong( "osm_id" ), rs.getBoolean( "is_paid" ), rs.getDouble( "length" ), speedFw, speedBw, rs.getString( "geom" ) ) );
-                        id = speedFw = speedBw = -1;
-                    } else {
-                        id = rs.getLong( "data_id" );
-                        if ( isForward ) {
-                            speedFw = rs.getInt( "speed" );
-                        } else {
-                            speedBw = rs.getInt( "speed" );
-                        }
-                    }
+                    target.insert( new ParsedEdgeData( rs.getLong( "id" ), rs.getLong( "osm_id" ), rs.getBoolean( "is_paid" ), rs.getDouble( "length" ), rs.getInt( "speed_fw" ), rs.getInt( "speed_bw" ), rs.getString( "geom" ) ) );
                 }
             }
             {
@@ -71,7 +47,7 @@ public class PostgresqlParsedDataSource implements ParsedDataSource {
                 }
             }
             {
-                rs = database.read( "SELECT id, osm_id, ST_AsText(geom) FROM nodes_data_routing;" );
+                rs = database.read( "SELECT id, osm_id, ST_AsText(geom) AS geom FROM nodes_data_routing;" );
                 while ( rs.next() ) {
                     target.insert( new ParsedNodeData( rs.getLong( "id" ), rs.getLong( "osm_id" ), rs.getString( "geom" ) ) );
                 }
@@ -85,17 +61,18 @@ public class PostgresqlParsedDataSource implements ParsedDataSource {
         } catch ( SQLException ex ) {
             throw new IOException( ex );
         }
+        target.close();
     }
 
-    private static class PostrgresqlOsmDatabase extends AbstractServerDatabase<ResultSet, String> {
+    private static class PostgresqlDatabase extends AbstractServerDatabase<ResultSet, String> {
 
-        public PostrgresqlOsmDatabase( Properties connectionProperties ) {
+        public PostgresqlDatabase( Properties connectionProperties ) {
             super( connectionProperties );
         }
 
         @Override
         protected ResultSet checkedRead( String ad ) throws SQLException {
-            throw new UnsupportedOperationException( "Not supported yet." ); //To change body of generated methods, choose Tools | Templates.
+            return getStatement().executeQuery( ad );
         }
 
         @Override

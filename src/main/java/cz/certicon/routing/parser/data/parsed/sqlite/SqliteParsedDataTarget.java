@@ -21,6 +21,9 @@ import java.util.logging.Logger;
 import org.sqlite.SQLiteConfig;
 
 /**
+ * Properties requirements (and example values): driver=org.sqlite.JDBC
+ * url=jdbc:sqlite:spatialite.sample
+ * spatialite_path=/usr/local/lib/libspatialite.so
  *
  * @author Michael Blaha {@literal <michael.blaha@certicon.cz>}
  */
@@ -37,6 +40,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
     private int nodeDataCounter = 0;
     private PreparedStatement nodeStatement = null;
     private int nodeCounter = 0;
+    private boolean isOpen = false;
 
     public SqliteParsedDataTarget( Properties properties ) throws IOException {
         this.database = new StringDatabase( properties );
@@ -44,11 +48,15 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
 
     @Override
     public void open() throws IOException {
-        database.init();
+        if ( !isOpen ) {
+            database.init();
+            isOpen = true;
+        }
     }
 
     @Override
     public void insert( ParsedEdgeData edgeData ) throws IOException {
+        open();
         try {
             if ( edgeDataStatement == null ) {
                 edgeDataStatement = database.prepareStatement( "INSERT INTO edges_data (id, osm_id, is_paid, length, speed_fw, speed_bw, geom) VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?,4326))" );
@@ -72,9 +80,10 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
 
     @Override
     public void insert( ParsedEdge edge ) throws IOException {
+        open();
         try {
             if ( edgeStatement == null ) {
-                nodeStatement = database.prepareStatement( "INSERT INTO edges (id, data_id, is_forward, source_id, target_id) VALUES (?, ?, ?, ?, ?)" );
+                edgeStatement = database.prepareStatement( "INSERT INTO edges (id, data_id, is_forward, source_id, target_id) VALUES (?, ?, ?, ?, ?)" );
             }
             int idx = 1;
             edgeStatement.setLong( idx++, edge.getId() );
@@ -93,6 +102,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
 
     @Override
     public void insert( ParsedNodeData nodeData ) throws IOException {
+        open();
         try {
             if ( nodeDataStatement == null ) {
                 nodeDataStatement = database.prepareStatement( "INSERT INTO nodes_data (id, osm_id, geom) VALUES (?, ?, ST_GeomFromText(?,4326))" );
@@ -112,9 +122,10 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
 
     @Override
     public void insert( ParsedNode node ) throws IOException {
+        open();
         try {
             if ( nodeStatement == null ) {
-                nodeStatement = database.prepareStatement( "INSERT INTO edges_data (id, data_id) VALUES (?, ?)" );
+                nodeStatement = database.prepareStatement( "INSERT INTO nodes (id, data_id) VALUES (?, ?)" );
             }
             int idx = 1;
             nodeStatement.setLong( idx++, node.getId() );
@@ -135,7 +146,9 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             edgeStatement.executeBatch();
             nodeDataStatement.executeBatch();
             nodeStatement.executeBatch();
+            database.finish();
             database.close();
+            isOpen = false;
         } catch ( SQLException ex ) {
             throw new IOException( ex );
         }
@@ -165,7 +178,10 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             throw new UnsupportedOperationException( "Not supported yet." ); //To change body of generated methods, choose Tools | Templates.
         }
 
-        public PreparedStatement prepareStatement( String statement ) throws SQLException {
+        public PreparedStatement prepareStatement( String statement ) throws SQLException, IOException {
+            if ( !isOpen() ) {
+                open();
+            }
             return getConnection().prepareStatement( statement );
         }
 
@@ -174,8 +190,8 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
                 open();
             }
             try {
-                getConnection().setAutoCommit( false ); //transaction block start
                 // initialize SpatiaLite
+                getConnection().setAutoCommit( false ); //transaction block start
                 getStatement().execute( "SELECT load_extension('" + properties.getProperty( "spatialite_path" ) + "')" );
                 getStatement().execute( "SELECT InitSpatialMetadata()" );
                 // create tables
@@ -186,7 +202,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
                         + "length REAL,"
                         + "speed_fw INTEGER,"
                         + "speed_bw INTEGER"
-                        + ");" );
+                        + ")" );
                 getStatement().execute( "SELECT AddGeometryColumn('edges_data','geom',4326,'LINESTRING','XY')" );
                 getStatement().execute( "CREATE TABLE edges ("
                         + "id INTEGER NOT NULL PRIMARY KEY,"
@@ -194,16 +210,35 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
                         + "is_forward INTEGER,"
                         + "source_id INTEGER,"
                         + "target_id INTEGER"
-                        + ");" );
+                        + ")" );
                 getStatement().execute( "CREATE TABLE nodes_data ("
                         + "id INTEGER NOT NULL PRIMARY KEY,"
                         + "osm_id INTEGER"
-                        + ");" );
+                        + ")" );
                 getStatement().execute( "SELECT AddGeometryColumn('nodes_data','geom',4326,'POINT','XY')" );
                 getStatement().execute( "CREATE TABLE nodes ("
                         + "id INTEGER NOT NULL PRIMARY KEY,"
                         + "data_id INTEGER"
-                        + ");" );
+                        + ")" );
+            } catch ( SQLException ex ) {
+                throw new IOException( ex );
+            }
+        }
+
+        public void finish() throws IOException {
+            try {
+                // create indexes
+                getStatement().execute( "CREATE UNIQUE INDEX `idx_id_edges_data` ON `edges_data` (`id` ASC)" );
+                getStatement().execute( "CREATE UNIQUE INDEX `idx_id_edges` ON `edges` (`id` ASC)" );
+                getStatement().execute( "CREATE INDEX `fk_id_edges_data` ON `edges` (`data_id` ASC)" );
+                getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes_data` ON `nodes_data` (`id` ASC)" );
+                getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes` ON `nodes` (`id` ASC)" );
+                getStatement().execute( "CREATE INDEX `fk_id_nodes_data` ON `nodes` (`data_id` ASC)" );
+                getStatement().execute( "SELECT CreateSpatialIndex('edges_data','geom')" );
+                getStatement().execute( "SELECT CreateSpatialIndex('nodes_data','geom')" );
+                // finish
+                getConnection().commit();
+                getConnection().setAutoCommit( true ); //transaction block end
             } catch ( SQLException ex ) {
                 throw new IOException( ex );
             }

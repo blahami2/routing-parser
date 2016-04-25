@@ -5,9 +5,12 @@
  */
 package cz.certicon.routing.parser.model;
 
+import cz.certicon.routing.parser.model.commands.DataTypeCommand;
 import cz.certicon.routing.parser.model.commands.SourcePbfFileCommand;
 import cz.certicon.routing.parser.model.commands.TargetDbFileCommand;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -17,25 +20,127 @@ import java.util.List;
 public class ArgumentsParser {
 
     public static List<Command> parse( String... args ) {
-        List<Command> commands = new ArrayList<>();
-        for ( String arg : args ) {
-            if ( arg.startsWith( "parallel=" ) ) {
-                commands.add( new SourcePbfFileCommand( arg.substring( "source_pbf_file=".length() ) ) );
-            } else if ( arg.startsWith( "" ) ) {
-            } else {
-
+        final List<Command> commands = new ArrayList<>();
+        Group<String> settings = new XorGroup<>();
+        settings.addChainLink( new CommandChainLink( "parallel" ) {
+            @Override
+            public void onSuccess( String value ) {
+                commands.add( new SourcePbfFileCommand( value ) );
             }
+        } );
+        settings.addChainLink( new CommandChainLink( "data_type" ) {
+            @Override
+            public void onSuccess( String value ) {
+                commands.add( new DataTypeCommand( DataType.valueOfIgnoreCase( value ) ) );
+            }
+        } );
+        for ( String arg : args ) {
+            settings.execute( arg );
         }
-        for ( String arg : args ) {
-            if ( arg.startsWith( "source_pbf_file=" ) ) {
-                commands.add( new SourcePbfFileCommand( arg.substring( "source_pbf_file=".length() ) ) );
-            } else if ( arg.startsWith( "target_db_file=" ) ) {
-                commands.add( new TargetDbFileCommand( arg.substring( "target_db_file=".length() ) ) );
-            } else {
 
+        Group<String> files = new XorGroup<>();
+        files.addChainLink( new CommandChainLink( "source_pbf_file" ) {
+            @Override
+            public void onSuccess( String value ) {
+                commands.add( new SourcePbfFileCommand( value ) );
             }
+        } );
+        files.addChainLink( new CommandChainLink( "target_db_file" ) {
+            @Override
+            public void onSuccess( String value ) {
+                commands.add( new TargetDbFileCommand( value ) );
+            }
+        } );
+        for ( String arg : args ) {
+            files.execute( arg );
         }
         return commands;
+    }
+
+    private static abstract class CommandChainLink implements ChainLink<String> {
+
+        private final String key;
+
+        public CommandChainLink( String key ) {
+            this.key = key + "=";
+        }
+
+        @Override
+        public boolean execute( String t ) {
+            if ( t.startsWith( key ) ) {
+                onSuccess( t.substring( key.length() ) );
+                return true;
+            }
+            return false;
+        }
+
+        abstract public void onSuccess( String value );
+
+    }
+
+    private interface ChainLink<Traveller> {
+
+        public boolean execute( Traveller t );
+    }
+
+    private interface Group<Traveller> extends ChainLink<Traveller> {
+
+        public void addChainLink( ChainLink cl );
+
+        public boolean next( Traveller t );
+    }
+
+    private static abstract class SimpleGroup<Traveller> implements Group<Traveller> {
+
+        private final List<ChainLink<Traveller>> list = new LinkedList<>();
+        private Iterator<ChainLink<Traveller>> iterator = null;
+
+        @Override
+        public void addChainLink( ChainLink cl ) {
+            list.add( cl );
+        }
+
+        @Override
+        public boolean execute( Traveller t ) {
+            iterator = list.iterator();
+            return next( t );
+        }
+
+        @Override
+        public boolean next( Traveller t ) {
+            if ( !getIterator().hasNext() ) {
+                return false;
+            }
+            ChainLink<Traveller> next = getIterator().next();
+            return executeNext( next, t );
+        }
+
+        abstract protected boolean executeNext( ChainLink<Traveller> next, Traveller t );
+
+        protected Iterator<ChainLink<Traveller>> getIterator() {
+            return iterator;
+        }
+    }
+
+    private static class XorGroup<Traveller> extends SimpleGroup<Traveller> {
+
+        @Override
+        protected boolean executeNext( ChainLink<Traveller> next, Traveller t ) {
+            if ( !next.execute( t ) ) {
+                return next( t );
+            } else {
+                return true;
+            }
+        }
+    }
+
+    private static class OrGroup<Traveller> extends SimpleGroup<Traveller> {
+
+        @Override
+        protected boolean executeNext( ChainLink<Traveller> next, Traveller t ) {
+            return next.execute( t );
+        }
+
     }
 
 }

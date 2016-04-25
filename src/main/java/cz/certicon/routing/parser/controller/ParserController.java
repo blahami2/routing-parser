@@ -8,9 +8,14 @@ package cz.certicon.routing.parser.controller;
 import cz.certicon.routing.parser.data.osm.OsmDataSource;
 import cz.certicon.routing.parser.data.osm.OsmDataTarget;
 import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
+import cz.certicon.routing.parser.data.parsed.ParsedDataSource;
+import cz.certicon.routing.parser.data.parsed.ParsedDataTarget;
+import cz.certicon.routing.parser.model.DataType;
 import cz.certicon.routing.parser.view.Input;
 import cz.certicon.routing.parser.view.Output;
 import cz.certicon.routing.parser.view.cmd.CommandLineInput;
+import cz.certicon.routing.utils.measuring.TimeMeasurement;
+import cz.certicon.routing.utils.measuring.TimeUnits;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,12 +26,15 @@ import java.util.logging.Logger;
  */
 public class ParserController {
 
+    private DataType dataType;
     // view
     private Input input;
     private Output output;
     // data
     private OsmDataSource osmDataSource;
     private OsmDataTargetFactory osmDataTargetFactory;
+    private ParsedDataSource parsedDataSource;
+    private ParsedDataTarget parsedDataTarget;
     // model
     // settings
     private boolean parallel = true;
@@ -45,12 +53,20 @@ public class ParserController {
             }
         } );
         try {
-            System.out.println( "Reading..." );
-            if ( parallel ) {
-                osmDataSource.read( osmDataTargetFactory );
+            System.out.println( "Parsing data..." );
+            TimeMeasurement time = new TimeMeasurement();
+            time.setTimeUnits( TimeUnits.MILLISECONDS );
+            time.start();
+            if ( dataType.equals( DataType.OSM ) ) {
+                if ( parallel ) {
+                    osmDataSource.read( osmDataTargetFactory );
+                } else {
+                    osmDataSource.read( osmDataTargetFactory.createOsmDataTarget() );
+                }
             } else {
-                osmDataSource.read( osmDataTargetFactory.createOsmDataTarget() );
+                parsedDataSource.read( parsedDataTarget );
             }
+            System.out.println( "Parsing done in " + time.stop() + " ms!" );
         } catch ( IOException ex ) {
             Logger.getLogger( ParserController.class.getName() ).log( Level.SEVERE, null, ex );
         }
@@ -78,6 +94,30 @@ public class ParserController {
 
     public void setParallel( boolean parallel ) {
         this.parallel = parallel;
+    }
+
+    public void setDataType( DataType dataType ) {
+        this.dataType = dataType;
+    }
+
+    public DataType getDataType() {
+        return dataType;
+    }
+
+    public ParsedDataSource getParsedDataSource() {
+        return parsedDataSource;
+    }
+
+    public void setParsedDataSource( ParsedDataSource parsedDataSource ) {
+        this.parsedDataSource = parsedDataSource;
+    }
+
+    public ParsedDataTarget getParsedDataTarget() {
+        return parsedDataTarget;
+    }
+
+    public void setParsedDataTarget( ParsedDataTarget parsedDataTarget ) {
+        this.parsedDataTarget = parsedDataTarget;
     }
 
 }

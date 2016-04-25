@@ -6,6 +6,8 @@
 package cz.certicon.routing.parser.model;
 
 import cz.certicon.routing.parser.model.commands.DataTypeCommand;
+import cz.certicon.routing.parser.model.commands.ParsedSourceDbFileCommand;
+import cz.certicon.routing.parser.model.commands.ParsedTargetSqliteFileCommand;
 import cz.certicon.routing.parser.model.commands.SourcePbfFileCommand;
 import cz.certicon.routing.parser.model.commands.TargetDbFileCommand;
 import java.util.ArrayList;
@@ -49,6 +51,18 @@ public class ArgumentsParser {
             @Override
             public void onSuccess( String value ) {
                 commands.add( new TargetDbFileCommand( value ) );
+            }
+        } );
+        files.addChainLink( new CommandChainLink( "source_db_file" ) {
+            @Override
+            public void onSuccess( String value ) {
+                commands.add( new ParsedSourceDbFileCommand( value ) );
+            }
+        } );
+        files.addChainLink( new CommandChainLink( "target_sqlite_file" ) {
+            @Override
+            public void onSuccess( String value ) {
+                commands.add( new ParsedTargetSqliteFileCommand( value ) );
             }
         } );
         for ( String arg : args ) {

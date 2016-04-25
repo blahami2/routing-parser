@@ -16,13 +16,13 @@ public interface ParsedDataTarget {
 
     public void open() throws IOException;
 
-    public boolean insert( ParsedEdgeData edgeData ) throws IOException;
+    public void insert( ParsedEdgeData edgeData ) throws IOException;
 
-    public boolean insert( ParsedEdge edge ) throws IOException;
+    public void insert( ParsedEdge edge ) throws IOException;
 
-    public boolean insert( ParsedNodeData nodeData ) throws IOException;
+    public void insert( ParsedNodeData nodeData ) throws IOException;
 
-    public boolean insert( ParsedNode node ) throws IOException;
+    public void insert( ParsedNode node ) throws IOException;
 
     public void close() throws IOException;
 }

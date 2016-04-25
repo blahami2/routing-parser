@@ -13,6 +13,6 @@ import java.io.IOException;
  */
 public interface ParsedDataSource {
 
-    public boolean read( ParsedDataTarget target ) throws IOException;
+    public void read( ParsedDataTarget target ) throws IOException;
     
 }

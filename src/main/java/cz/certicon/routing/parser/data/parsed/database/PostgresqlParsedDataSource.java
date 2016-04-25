@@ -33,7 +33,7 @@ public class PostgresqlParsedDataSource implements ParsedDataSource {
     }
 
     @Override
-    public boolean read( ParsedDataTarget target ) throws IOException {
+    public void read( ParsedDataTarget target ) throws IOException {
         ResultSet rs;
         try {
             {
@@ -85,7 +85,6 @@ public class PostgresqlParsedDataSource implements ParsedDataSource {
         } catch ( SQLException ex ) {
             throw new IOException( ex );
         }
-        throw new UnsupportedOperationException( "Not supported yet." ); //To change body of generated methods, choose Tools | Templates.F
     }
 
     private static class PostrgresqlOsmDatabase extends AbstractServerDatabase<ResultSet, String> {

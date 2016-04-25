@@ -59,7 +59,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
         open();
         try {
             if ( edgeDataStatement == null ) {
-                edgeDataStatement = database.prepareStatement( "INSERT INTO edges_data (id, osm_id, is_paid, length, speed_fw, speed_bw, geom) VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?,4326))" );
+                edgeDataStatement = database.prepareStatement( "INSERT INTO edges_data (id, osm_id, is_paid, length, speed_fw, speed_bw, geom) VALUES (?, ?, ?, ?, ?, ?, GeomFromText(?, 4326))" );
             }
             int idx = 1;
             edgeDataStatement.setLong( idx++, edgeData.getId() );
@@ -68,11 +68,14 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             edgeDataStatement.setDouble( idx++, edgeData.getLength() );
             edgeDataStatement.setInt( idx++, edgeData.getSpeedForward() );
             edgeDataStatement.setInt( idx++, edgeData.getSpeedBackward() );
-            edgeDataStatement.setString( idx++, "'" + edgeData.getGeometry() + "'" );
+            edgeDataStatement.setString( idx++, edgeData.getGeometry() );
             edgeDataStatement.addBatch();
             if ( ++edgeDataCounter % BATCH_SIZE == 0 ) {
                 edgeDataStatement.executeBatch();
             }
+
+//            database.checkedWrite( "INSERT INTO edges_data (id, osm_id, is_paid, length, speed_fw, speed_bw, geom) VALUES ("
+//                    + edgeData.getId() + ", " + edgeData.getOsmId() + ", " + ( edgeData.isIsPaid() ? 1 : 0 ) + ", " + edgeData.getLength() + ", " + edgeData.getSpeedForward() + ", " + edgeData.getSpeedBackward() + ", " + "ST_GeomFromText('" + edgeData.getGeometry() + "',4326)" + ")" );
         } catch ( SQLException ex ) {
             throw new IOException( ex );
         }
@@ -105,12 +108,12 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
         open();
         try {
             if ( nodeDataStatement == null ) {
-                nodeDataStatement = database.prepareStatement( "INSERT INTO nodes_data (id, osm_id, geom) VALUES (?, ?, ST_GeomFromText(?,4326))" );
+                nodeDataStatement = database.prepareStatement( "INSERT INTO nodes_data (id, osm_id, geom) VALUES (?, ?, GeomFromText(?,4326))" );
             }
             int idx = 1;
             nodeDataStatement.setLong( idx++, nodeData.getId() );
             nodeDataStatement.setLong( idx++, nodeData.getOsmId() );
-            nodeDataStatement.setString( idx++, "'" + nodeData.getGeom() + "'" );
+            nodeDataStatement.setString( idx++, nodeData.getGeom() );
             nodeDataStatement.addBatch();
             if ( ++nodeDataCounter % BATCH_SIZE == 0 ) {
                 nodeDataStatement.executeBatch();
@@ -175,7 +178,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
 
         @Override
         protected void checkedWrite( String in ) throws SQLException {
-            throw new UnsupportedOperationException( "Not supported yet." ); //To change body of generated methods, choose Tools | Templates.
+            getStatement().execute( in );
         }
 
         public PreparedStatement prepareStatement( String statement ) throws SQLException, IOException {
@@ -193,7 +196,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
                 // initialize SpatiaLite
                 getConnection().setAutoCommit( false ); //transaction block start
                 getStatement().execute( "SELECT load_extension('" + properties.getProperty( "spatialite_path" ) + "')" );
-                getStatement().execute( "SELECT InitSpatialMetadata()" );
+                getStatement().execute( "SELECT InitSpatialMetadata('WGS84_ONLY')" );
                 // create tables
                 getStatement().execute( "CREATE TABLE edges_data ("
                         + "id INTEGER NOT NULL PRIMARY KEY,"

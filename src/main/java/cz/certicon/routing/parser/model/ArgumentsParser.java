@@ -6,6 +6,7 @@
 package cz.certicon.routing.parser.model;
 
 import cz.certicon.routing.parser.model.commands.DataTypeCommand;
+import cz.certicon.routing.parser.model.commands.PropertyCommand;
 import cz.certicon.routing.parser.model.commands.SourcePbfFileCommand;
 import cz.certicon.routing.parser.model.commands.TargetDbFileCommand;
 import java.util.ArrayList;
@@ -22,16 +23,16 @@ public class ArgumentsParser {
     public static List<Command> parse( String... args ) {
         final List<Command> commands = new ArrayList<>();
         Group<String> settings = new XorGroup<>();
-        settings.addChainLink( new CommandChainLink( "parallel" ) {
-            @Override
-            public void onSuccess( String value ) {
-                commands.add( new SourcePbfFileCommand( value ) );
-            }
-        } );
         settings.addChainLink( new CommandChainLink( "data_type" ) {
             @Override
             public void onSuccess( String value ) {
                 commands.add( new DataTypeCommand( DataType.valueOfIgnoreCase( value ) ) );
+            }
+        } );
+        settings.addChainLink( new PropertyCommandChainLink() {
+            @Override
+            public void onParse( PropertyCommand propertyCommand ) {
+                commands.add( propertyCommand );
             }
         } );
         for ( String arg : args ) {
@@ -55,6 +56,18 @@ public class ArgumentsParser {
             files.execute( arg );
         }
         return commands;
+    }
+
+    private static abstract class PropertyCommandChainLink implements ChainLink<String> {
+
+        @Override
+        public boolean execute( String t ) {
+            String[] split = t.split( "=" );
+            onParse( new PropertyCommand( split[0], split[1] ) );
+            return false;
+        }
+
+        abstract public void onParse( PropertyCommand propertyCommand );
     }
 
     private static abstract class CommandChainLink implements ChainLink<String> {

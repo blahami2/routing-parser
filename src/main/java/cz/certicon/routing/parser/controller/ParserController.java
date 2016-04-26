@@ -17,6 +17,9 @@ import cz.certicon.routing.parser.view.cmd.CommandLineInput;
 import cz.certicon.routing.utils.measuring.TimeMeasurement;
 import cz.certicon.routing.utils.measuring.TimeUnits;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,7 +40,7 @@ public class ParserController {
     private ParsedDataTarget parsedDataTarget;
     // model
     // settings
-    private boolean parallel = true;
+    private Map<String, String> properties = new HashMap<>();
 
     public ParserController() {
         this.input = new CommandLineInput();
@@ -58,12 +61,18 @@ public class ParserController {
             time.setTimeUnits( TimeUnits.MILLISECONDS );
             time.start();
             if ( dataType.equals( DataType.OSM ) ) {
-                if ( parallel ) {
+                if ( "true".equals( getProperty( "parallel" ) ) ) {
                     osmDataSource.read( osmDataTargetFactory );
                 } else {
                     osmDataSource.read( osmDataTargetFactory.createOsmDataTarget() );
                 }
             } else {
+                Properties executionProperties = new Properties();
+                properties.entrySet().stream().forEach( ( entry ) -> {
+                    executionProperties.put( entry.getKey(), entry.getValue() );
+                } );
+                parsedDataSource.setExecutionProperties( executionProperties );
+                parsedDataTarget.setExecutionProperties( executionProperties );
                 parsedDataSource.read( parsedDataTarget );
             }
             System.out.println( "Parsing done in " + time.stop() + " ms!" );
@@ -86,14 +95,6 @@ public class ParserController {
 
     public void setOsmDataTargetFactory( OsmDataTargetFactory osmDataTargetFactory ) {
         this.osmDataTargetFactory = osmDataTargetFactory;
-    }
-
-    public boolean isParallel() {
-        return parallel;
-    }
-
-    public void setParallel( boolean parallel ) {
-        this.parallel = parallel;
     }
 
     public void setDataType( DataType dataType ) {
@@ -120,4 +121,11 @@ public class ParserController {
         this.parsedDataTarget = parsedDataTarget;
     }
 
+    public void setProperty( String key, String value ) {
+        properties.put( key, value );
+    }
+
+    public String getProperty( String key ) {
+        return properties.get( key );
+    }
 }

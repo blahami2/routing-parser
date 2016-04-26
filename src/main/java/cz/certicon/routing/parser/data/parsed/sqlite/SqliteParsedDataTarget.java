@@ -16,8 +16,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.sqlite.SQLiteConfig;
 
 /**
@@ -29,8 +27,6 @@ import org.sqlite.SQLiteConfig;
  */
 public class SqliteParsedDataTarget implements ParsedDataTarget {
 
-    private final int BATCH_SIZE = 200;
-
     private final StringDatabase database;
     private PreparedStatement edgeDataStatement = null;
     private int edgeDataCounter = 0;
@@ -41,14 +37,21 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
     private PreparedStatement nodeStatement = null;
     private int nodeCounter = 0;
     private boolean isOpen = false;
+    private final Properties executionProperties;
+    private int batchSize;
 
     public SqliteParsedDataTarget( Properties properties ) throws IOException {
         this.database = new StringDatabase( properties );
+        this.executionProperties = new Properties();
+        this.executionProperties.setProperty( "batch_size", "200" );
+        this.executionProperties.setProperty( "index", "true" );
     }
 
     @Override
     public void open() throws IOException {
         if ( !isOpen ) {
+            database.setExecutionProperties( executionProperties );
+            batchSize = Integer.parseInt( executionProperties.getProperty( "batch_size" ) );
             database.init();
             isOpen = true;
         }
@@ -70,7 +73,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             edgeDataStatement.setInt( idx++, edgeData.getSpeedBackward() );
             edgeDataStatement.setString( idx++, "'" + edgeData.getGeometry() + "'" );
             edgeDataStatement.addBatch();
-            if ( ++edgeDataCounter % BATCH_SIZE == 0 ) {
+            if ( ++edgeDataCounter % batchSize == 0 ) {
                 edgeDataStatement.executeBatch();
             }
         } catch ( SQLException ex ) {
@@ -92,7 +95,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             edgeStatement.setLong( idx++, edge.getSourceId() );
             edgeStatement.setLong( idx++, edge.getTargetId() );
             edgeStatement.addBatch();
-            if ( ++edgeCounter % BATCH_SIZE == 0 ) {
+            if ( ++edgeCounter % batchSize == 0 ) {
                 edgeStatement.executeBatch();
             }
         } catch ( SQLException ex ) {
@@ -112,7 +115,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             nodeDataStatement.setLong( idx++, nodeData.getOsmId() );
             nodeDataStatement.setString( idx++, "'" + nodeData.getGeom() + "'" );
             nodeDataStatement.addBatch();
-            if ( ++nodeDataCounter % BATCH_SIZE == 0 ) {
+            if ( ++nodeDataCounter % batchSize == 0 ) {
                 nodeDataStatement.executeBatch();
             }
         } catch ( SQLException ex ) {
@@ -131,7 +134,7 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             nodeStatement.setLong( idx++, node.getId() );
             nodeStatement.setLong( idx++, node.getDataId() );
             nodeStatement.addBatch();
-            if ( ++nodeCounter % BATCH_SIZE == 0 ) {
+            if ( ++nodeCounter % batchSize == 0 ) {
                 nodeStatement.executeBatch();
             }
         } catch ( SQLException ex ) {
@@ -154,9 +157,17 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
         }
     }
 
+    @Override
+    public void setExecutionProperties( Properties properties ) {
+        properties.entrySet().stream().forEach( ( entry ) -> {
+            executionProperties.put( entry.getKey(), entry.getValue() );
+        } );
+    }
+
     private static class StringDatabase extends AbstractEmbeddedDatabase<String, String> {
 
         private final Properties properties;
+        private Properties executionProperties;
 
         public StringDatabase( Properties connectionProperties ) {
             super( connectionProperties );
@@ -166,6 +177,10 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             for ( Map.Entry<Object, Object> entry : config.toProperties().entrySet() ) {
                 connectionProperties.put( entry.getKey(), entry.getValue() );
             }
+        }
+
+        public void setExecutionProperties( Properties executionProperties ) {
+            this.executionProperties = executionProperties;
         }
 
         @Override
@@ -228,14 +243,16 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
         public void finish() throws IOException {
             try {
                 // create indexes
-                getStatement().execute( "CREATE UNIQUE INDEX `idx_id_edges_data` ON `edges_data` (`id` ASC)" );
-                getStatement().execute( "CREATE UNIQUE INDEX `idx_id_edges` ON `edges` (`id` ASC)" );
-                getStatement().execute( "CREATE INDEX `fk_id_edges_data` ON `edges` (`data_id` ASC)" );
-                getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes_data` ON `nodes_data` (`id` ASC)" );
-                getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes` ON `nodes` (`id` ASC)" );
-                getStatement().execute( "CREATE INDEX `fk_id_nodes_data` ON `nodes` (`data_id` ASC)" );
-                getStatement().execute( "SELECT CreateSpatialIndex('edges_data','geom')" );
-                getStatement().execute( "SELECT CreateSpatialIndex('nodes_data','geom')" );
+                if ( "true".equals( executionProperties.getProperty( "index" ) ) ) {
+                    getStatement().execute( "CREATE UNIQUE INDEX `idx_id_edges_data` ON `edges_data` (`id` ASC)" );
+                    getStatement().execute( "CREATE UNIQUE INDEX `idx_id_edges` ON `edges` (`id` ASC)" );
+                    getStatement().execute( "CREATE INDEX `fk_id_edges_data` ON `edges` (`data_id` ASC)" );
+                    getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes_data` ON `nodes_data` (`id` ASC)" );
+                    getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes` ON `nodes` (`id` ASC)" );
+                    getStatement().execute( "CREATE INDEX `fk_id_nodes_data` ON `nodes` (`data_id` ASC)" );
+                    getStatement().execute( "SELECT CreateSpatialIndex('edges_data','geom')" );
+                    getStatement().execute( "SELECT CreateSpatialIndex('nodes_data','geom')" );
+                }
                 // finish
                 getConnection().commit();
                 getConnection().setAutoCommit( true ); //transaction block end

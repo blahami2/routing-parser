@@ -7,6 +7,7 @@ package cz.certicon.routing.parser.data.parsed;
 
 import cz.certicon.routing.parser.model.entity.parsed.*;
 import java.io.IOException;
+import java.util.Properties;
 
 /**
  *
@@ -25,4 +26,6 @@ public interface ParsedDataTarget {
     public void insert( ParsedNode node ) throws IOException;
 
     public void close() throws IOException;
+    
+    public void setExecutionProperties(Properties properties);
 }

@@ -13,17 +13,19 @@ import java.io.IOException;
  *
  * @author Michael Blaha {@literal <michael.blaha@certicon.cz>}
  */
-public class ParallelCommand implements Command {
+public class PropertyCommand implements Command {
 
     private final String value;
+    private final String key;
 
-    public ParallelCommand( String value ) {
+    public PropertyCommand( String key, String value ) {
         this.value = value;
+        this.key = value;
     }
 
     @Override
     public void execute( ParserController controller ) throws IOException {
-        controller.setParallel( !value.equals( "false" ) );
+        controller.setProperty( key, value );
     }
 
 }

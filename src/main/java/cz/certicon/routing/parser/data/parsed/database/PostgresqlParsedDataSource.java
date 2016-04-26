@@ -6,9 +6,6 @@
 package cz.certicon.routing.parser.data.parsed.database;
 
 import cz.certicon.routing.data.basic.database.AbstractServerDatabase;
-import cz.certicon.routing.parser.data.osm.OsmDataSource;
-import cz.certicon.routing.parser.data.osm.OsmDataTarget;
-import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
 import cz.certicon.routing.parser.data.parsed.ParsedDataSource;
 import cz.certicon.routing.parser.data.parsed.ParsedDataTarget;
 import cz.certicon.routing.parser.model.entity.parsed.ParsedEdge;
@@ -26,10 +23,12 @@ import java.util.Properties;
  */
 public class PostgresqlParsedDataSource implements ParsedDataSource {
 
-    private final PostrgresqlOsmDatabase database;
+
+    private final PostgresqlDatabase database;
+    private final Properties executionProperties = new Properties();
 
     public PostgresqlParsedDataSource( Properties connectionProperties ) {
-        this.database = new PostrgresqlOsmDatabase( connectionProperties );
+        this.database = new PostgresqlDatabase( connectionProperties );
     }
 
     @Override
@@ -87,9 +86,17 @@ public class PostgresqlParsedDataSource implements ParsedDataSource {
         }
     }
 
-    private static class PostrgresqlOsmDatabase extends AbstractServerDatabase<ResultSet, String> {
 
-        public PostrgresqlOsmDatabase( Properties connectionProperties ) {
+    @Override
+    public void setExecutionProperties( Properties properties ) {
+        properties.entrySet().stream().forEach( ( entry ) -> {
+            executionProperties.put( entry.getKey(), entry.getValue() );
+        } );
+    }
+
+    private static class PostgresqlDatabase extends AbstractServerDatabase<ResultSet, String> {
+
+        public PostgresqlDatabase( Properties connectionProperties ) {
             super( connectionProperties );
         }
 

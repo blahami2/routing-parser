@@ -6,6 +6,7 @@
 package cz.certicon.routing.parser.data.parsed;
 
 import java.io.IOException;
+import java.util.Properties;
 
 /**
  *
@@ -15,4 +16,5 @@ public interface ParsedDataSource {
 
     public void read( ParsedDataTarget target ) throws IOException;
     
+    public void setExecutionProperties(Properties properties);
 }

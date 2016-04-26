@@ -24,6 +24,7 @@ import java.util.Properties;
 public class PostgresqlParsedDataSource implements ParsedDataSource {
 
     private final PostgresqlDatabase database;
+    private final Properties executionProperties = new Properties();
 
     public PostgresqlParsedDataSource( Properties connectionProperties ) {
         this.database = new PostgresqlDatabase( connectionProperties );
@@ -62,6 +63,13 @@ public class PostgresqlParsedDataSource implements ParsedDataSource {
             throw new IOException( ex );
         }
         target.close();
+    }
+
+    @Override
+    public void setExecutionProperties( Properties properties ) {
+        properties.entrySet().stream().forEach( ( entry ) -> {
+            executionProperties.put( entry.getKey(), entry.getValue() );
+        } );
     }
 
     private static class PostgresqlDatabase extends AbstractServerDatabase<ResultSet, String> {

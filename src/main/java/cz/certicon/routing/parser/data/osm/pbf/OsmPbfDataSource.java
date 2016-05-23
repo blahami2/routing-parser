@@ -6,12 +6,12 @@
 package cz.certicon.routing.parser.data.osm.pbf;
 
 import cz.certicon.routing.data.DataSource;
+import cz.certicon.routing.model.basic.TimeUnits;
 import cz.certicon.routing.parser.data.osm.OsmDataSource;
 import cz.certicon.routing.parser.data.osm.OsmDataTarget;
 import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
 import cz.certicon.routing.parser.model.entity.osm.*;
 import cz.certicon.routing.utils.measuring.TimeMeasurement;
-import cz.certicon.routing.utils.measuring.TimeUnits;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.sql.Timestamp;

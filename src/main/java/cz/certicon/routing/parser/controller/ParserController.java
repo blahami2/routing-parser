@@ -5,6 +5,7 @@
  */
 package cz.certicon.routing.parser.controller;
 
+import cz.certicon.routing.model.basic.TimeUnits;
 import cz.certicon.routing.parser.data.osm.OsmDataSource;
 import cz.certicon.routing.parser.data.osm.OsmDataTarget;
 import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
@@ -15,7 +16,6 @@ import cz.certicon.routing.parser.view.Input;
 import cz.certicon.routing.parser.view.Output;
 import cz.certicon.routing.parser.view.cmd.CommandLineInput;
 import cz.certicon.routing.utils.measuring.TimeMeasurement;
-import cz.certicon.routing.utils.measuring.TimeUnits;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;

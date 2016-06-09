@@ -25,7 +25,11 @@ public interface ParsedDataTarget {
 
     public void insert( ParsedNode node ) throws IOException;
 
+    public void insert( ParsedTurnRestriction turnRestriction ) throws IOException;
+
+    public void insert( ParsedTurnRestrictionArray turnRestrictionArray ) throws IOException;
+
     public void close() throws IOException;
-    
-    public void setExecutionProperties(Properties properties);
+
+    public void setExecutionProperties( Properties properties );
 }

@@ -11,6 +11,8 @@ import cz.certicon.routing.parser.model.entity.parsed.ParsedEdge;
 import cz.certicon.routing.parser.model.entity.parsed.ParsedEdgeData;
 import cz.certicon.routing.parser.model.entity.parsed.ParsedNode;
 import cz.certicon.routing.parser.model.entity.parsed.ParsedNodeData;
+import cz.certicon.routing.parser.model.entity.parsed.ParsedTurnRestriction;
+import cz.certicon.routing.parser.model.entity.parsed.ParsedTurnRestrictionArray;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -36,6 +38,10 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
     private int nodeDataCounter = 0;
     private PreparedStatement nodeStatement = null;
     private int nodeCounter = 0;
+    private PreparedStatement turnRestrictionStatement = null;
+    private int turnRestrictionCounter = 0;
+    private PreparedStatement turnRestrictionArrayStatement = null;
+    private int turnRestrictionArrayCounter = 0;
     private boolean isOpen = false;
     private final Properties executionProperties;
     private int batchSize;
@@ -146,6 +152,47 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
     }
 
     @Override
+    public void insert( ParsedTurnRestriction turnRestriction ) throws IOException {
+        open();
+        try {
+            if ( turnRestrictionStatement == null ) {
+                turnRestrictionStatement = database.prepareStatement( "INSERT INTO turn_restrictions (from_id, via_id, to_id) VALUES (?, ?, ?)" );
+            }
+            int idx = 1;
+            turnRestrictionStatement.setLong( idx++, turnRestriction.getFromId() );
+            turnRestrictionStatement.setLong( idx++, turnRestriction.getViaId() );
+            turnRestrictionStatement.setLong( idx++, turnRestriction.getToId() );
+            turnRestrictionStatement.addBatch();
+            if ( ++turnRestrictionCounter % batchSize == 0 ) {
+                turnRestrictionStatement.executeBatch();
+            }
+        } catch ( SQLException ex ) {
+            throw new IOException( ex );
+        }
+    }
+
+    @Override
+    public void insert( ParsedTurnRestrictionArray turnRestrictionArray ) throws IOException {
+        open();
+        try {
+            if ( turnRestrictionArrayStatement == null ) {
+                turnRestrictionArrayStatement = database.prepareStatement( "INSERT INTO turn_restrictions_array (array_id, position, edge_id) VALUES (?, ?, ?)" );
+            }
+            int idx = 1;
+            turnRestrictionArrayStatement.setLong( idx++, turnRestrictionArray.getArrayId() );
+            turnRestrictionArrayStatement.setInt( idx++, turnRestrictionArray.getPosition());
+            turnRestrictionArrayStatement.setLong( idx++, turnRestrictionArray.getEdgeId() );
+            turnRestrictionArrayStatement.addBatch();
+            if ( ++turnRestrictionArrayCounter % batchSize == 0 ) {
+                turnRestrictionArrayStatement.executeBatch();
+            }
+        } catch ( SQLException ex ) {
+            throw new IOException( ex );
+        }
+    }
+
+
+    @Override
     public void close() throws IOException {
         try {
             edgeDataStatement.executeBatch();
@@ -166,7 +213,6 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
             executionProperties.put( entry.getKey(), entry.getValue() );
         } );
     }
-
     private static class StringDatabase extends AbstractEmbeddedDatabase<String, String> {
 
         private final Properties properties;
@@ -238,6 +284,16 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
                         + "id INTEGER NOT NULL PRIMARY KEY,"
                         + "data_id INTEGER"
                         + ")" );
+                getStatement().execute( "CREATE TABLE turn_restrictions ("
+                        + "from_id INTEGER,"
+                        + "via_id INTEGER,"
+                        + "to_id INTEGER"
+                        + ")" );
+                getStatement().execute( "CREATE TABLE turn_restrictions_array ("
+                        + "array_id INTEGER,"
+                        + "position INTEGER,"
+                        + "edge_id INTEGER"
+                        + ")" );
             } catch ( SQLException ex ) {
                 throw new IOException( ex );
             }
@@ -253,6 +309,9 @@ public class SqliteParsedDataTarget implements ParsedDataTarget {
                     getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes_data` ON `nodes_data` (`id` ASC)" );
                     getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes` ON `nodes` (`id` ASC)" );
                     getStatement().execute( "CREATE INDEX `fk_id_nodes_data` ON `nodes` (`data_id` ASC)" );
+                    getStatement().execute( "CREATE INDEX `idx_id_via` ON `turn_restrictions` (`via_id` ASC)" );
+                    getStatement().execute( "CREATE INDEX `idx_id_array` ON `turn_restrictions_array` (`array_id` ASC)" );
+                    getStatement().execute( "CREATE INDEX `idx_position` ON `turn_restrictions_array` (`position` ASC)" );
                     getStatement().execute( "SELECT CreateSpatialIndex('edges_data','geom')" );
                     getStatement().execute( "SELECT CreateSpatialIndex('nodes_data','geom')" );
                 }

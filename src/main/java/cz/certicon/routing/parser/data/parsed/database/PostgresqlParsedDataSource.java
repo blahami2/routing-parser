@@ -12,6 +12,8 @@ import cz.certicon.routing.parser.model.entity.parsed.ParsedEdge;
 import cz.certicon.routing.parser.model.entity.parsed.ParsedEdgeData;
 import cz.certicon.routing.parser.model.entity.parsed.ParsedNode;
 import cz.certicon.routing.parser.model.entity.parsed.ParsedNodeData;
+import cz.certicon.routing.parser.model.entity.parsed.ParsedTurnRestriction;
+import cz.certicon.routing.parser.model.entity.parsed.ParsedTurnRestrictionArray;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -57,6 +59,18 @@ public class PostgresqlParsedDataSource implements ParsedDataSource {
                 rs = database.read( "SELECT * FROM nodes_routing;" );
                 while ( rs.next() ) {
                     target.insert( new ParsedNode( rs.getLong( "id" ), rs.getLong( "data_id" ) ) );
+                }
+            }
+            {
+                rs = database.read( "SELECT * FROM turn_restrictions;" );
+                while ( rs.next() ) {
+                    target.insert( new ParsedTurnRestriction( rs.getLong( "from_id" ), rs.getLong( "via_id" ), rs.getLong( "to_id" ) ) );
+                }
+            }
+            {
+                rs = database.read( "SELECT * FROM turn_restrictions_array;" );
+                while ( rs.next() ) {
+                    target.insert( new ParsedTurnRestrictionArray( rs.getLong( "array_id" ), rs.getInt( "position" ), rs.getLong( "edge_id" ) ) );
                 }
             }
         } catch ( SQLException ex ) {

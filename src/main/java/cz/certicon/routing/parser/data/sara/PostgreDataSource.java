@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package cz.certicon.routing.parser.data.sra;
+package cz.certicon.routing.parser.data.sara;
 
 import cz.certicon.routing.data.basic.database.AbstractServerDatabase;
 import cz.certicon.routing.model.basic.Trinity;
@@ -13,9 +13,7 @@ import gnu.trove.iterator.TLongIterator;
 import gnu.trove.iterator.TLongObjectIterator;
 import gnu.trove.list.TLongList;
 import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 import java.io.IOException;
 import java.sql.ResultSet;

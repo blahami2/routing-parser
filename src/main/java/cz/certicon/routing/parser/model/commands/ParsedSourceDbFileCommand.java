@@ -8,6 +8,8 @@ package cz.certicon.routing.parser.model.commands;
 import cz.certicon.routing.parser.controller.ParserController;
 import cz.certicon.routing.parser.data.parsed.ParsedDataSource;
 import cz.certicon.routing.parser.data.parsed.database.PostgresqlParsedDataSource;
+import cz.certicon.routing.parser.data.sara.DataSource;
+import cz.certicon.routing.parser.data.sara.PostgreDataSource;
 import cz.certicon.routing.parser.model.Command;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +33,7 @@ public class ParsedSourceDbFileCommand implements Command {
         File file = new File( filename );
         Properties properties = new Properties();
         properties.load( new FileInputStream( file ) );
-        ParsedDataSource parsedDataSource = new PostgresqlParsedDataSource( properties );
+        DataSource parsedDataSource = new PostgreDataSource(properties );
         controller.setParsedDataSource( parsedDataSource );
     }
 

@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package cz.certicon.routing.parser.data.sra;
+package cz.certicon.routing.parser.data.sara;
 
 import cz.certicon.routing.parser.model.entity.sra.*;
 import java.io.IOException;

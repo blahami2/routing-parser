@@ -8,6 +8,8 @@ package cz.certicon.routing.parser.model.commands;
 import cz.certicon.routing.parser.controller.ParserController;
 import cz.certicon.routing.parser.data.parsed.ParsedDataTarget;
 import cz.certicon.routing.parser.data.parsed.sqlite.SqliteParsedDataTarget;
+import cz.certicon.routing.parser.data.sara.DataTarget;
+import cz.certicon.routing.parser.data.sara.SqliteDataTarget;
 import cz.certicon.routing.parser.model.Command;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +33,7 @@ public class ParsedTargetSqliteFileCommand implements Command {
         File file = new File( filename );
         Properties properties = new Properties();
         properties.load( new FileInputStream( file ) );
-        ParsedDataTarget parsedDataTarget = new SqliteParsedDataTarget( properties );
+        DataTarget parsedDataTarget = new SqliteDataTarget( properties );
         controller.setParsedDataTarget( parsedDataTarget );
     }
 

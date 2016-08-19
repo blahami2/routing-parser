@@ -11,6 +11,8 @@ import cz.certicon.routing.parser.data.osm.OsmDataTarget;
 import cz.certicon.routing.parser.data.osm.OsmDataTargetFactory;
 import cz.certicon.routing.parser.data.parsed.ParsedDataSource;
 import cz.certicon.routing.parser.data.parsed.ParsedDataTarget;
+import cz.certicon.routing.parser.data.sara.DataSource;
+import cz.certicon.routing.parser.data.sara.DataTarget;
 import cz.certicon.routing.parser.model.DataType;
 import cz.certicon.routing.parser.view.Input;
 import cz.certicon.routing.parser.view.Output;
@@ -36,8 +38,8 @@ public class ParserController {
     // data
     private OsmDataSource osmDataSource;
     private OsmDataTargetFactory osmDataTargetFactory;
-    private ParsedDataSource parsedDataSource;
-    private ParsedDataTarget parsedDataTarget;
+    private DataSource parsedDataSource;
+    private DataTarget parsedDataTarget;
     // model
     // settings
     private Map<String, String> properties = new HashMap<>();
@@ -105,19 +107,19 @@ public class ParserController {
         return dataType;
     }
 
-    public ParsedDataSource getParsedDataSource() {
+    public DataSource getParsedDataSource() {
         return parsedDataSource;
     }
 
-    public void setParsedDataSource( ParsedDataSource parsedDataSource ) {
+    public void setParsedDataSource( DataSource parsedDataSource ) {
         this.parsedDataSource = parsedDataSource;
     }
 
-    public ParsedDataTarget getParsedDataTarget() {
+    public DataTarget getParsedDataTarget() {
         return parsedDataTarget;
     }
 
-    public void setParsedDataTarget( ParsedDataTarget parsedDataTarget ) {
+    public void setParsedDataTarget( DataTarget parsedDataTarget ) {
         this.parsedDataTarget = parsedDataTarget;
     }
 

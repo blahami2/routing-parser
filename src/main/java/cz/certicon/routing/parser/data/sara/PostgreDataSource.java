@@ -40,13 +40,13 @@ public class PostgreDataSource implements DataSource {
         ResultSet rs;
         target.open();
         try {
-            TLongObjectMap<Node> nodeMap = new TLongObjectHashMap<>();
-            TLongObjectMap<Matrix<Long, Double>> matrixMap = new TLongObjectHashMap<>();
+            Map<Long, Node> nodeMap = new HashMap<>();
+            Map<Long, Matrix<Long, Double>> matrixMap = new HashMap<>();
             // load nodes and create matrix for each node
-            rs = database.read( "SELECT n.id, ST_AsText(d.geom) AS geom FROM nodes_routing n JOIN nodes_data_routing d ON n.id = d.data_id;" );
+            rs = database.read( "SELECT n.id, ST_AsText(d.geom) AS geom FROM nodes_routing n JOIN nodes_data_routing d ON n.data_id = d.id;" );
             while ( rs.next() ) {
                 Node node = new Node( rs.getLong( "id" ), -1, rs.getString( "geom" ) );
-                matrixMap.put( node.getId(), new Matrix<>() );
+                matrixMap.put( node.getId(), new Matrix<>( 0.0 ) );
                 // insert nodes into database LATER, here is the wrong turntableid
                 nodeMap.put( node.getId(), node );
 //                target.insert( node );
@@ -70,21 +70,19 @@ public class PostgreDataSource implements DataSource {
                 target.insert( edge );
             }
             // for each node
-            TLongObjectIterator<Matrix<Long, Double>> iterator = matrixMap.iterator();
-            while ( iterator.hasNext() ) {
-                long nodeId = iterator.key();
+            for ( Map.Entry<Long, Matrix<Long, Double>> entry : matrixMap.entrySet() ) {
+                long nodeId = entry.getKey();
                 // get edge keys (edges) and orders
-                Matrix<Long, Double> matrix = iterator.value();
+                Matrix<Long, Double> matrix = entry.getValue();
                 for ( Long rowKey : matrix.getRowKeys() ) {
                     int order = matrix.getRowKeyPosition( rowKey );
                     NodeToEdge nodeToEdge = new NodeToEdge( nodeId, rowKey, order );
                     // insert node, edge_key, edge_id into database
                     target.insert( nodeToEdge );
                 }
-                iterator.advance();
             }
             // read turn restrictions and insert them into matrices
-            TLongObjectMap<Trinity<TLongList, Long, Long>> trMap = new TLongObjectHashMap<>();
+            Map<Long, Trinity<TLongList, Long, Long>> trMap = new HashMap<>();
             // - create map for trs
             rs = database.read( "SELECT * FROM turn_restrictions;" );
             while ( rs.next() ) {
@@ -97,8 +95,7 @@ public class PostgreDataSource implements DataSource {
                 trinity.a.add( rs.getLong( "edge_id" ) );
             }
             // - take last edge and to_edge and add them into matrix given by via
-            for ( Object o : trMap.values() ) {
-                Trinity<TLongList, Long, Long> trinity = (Trinity<TLongList, Long, Long>) o;
+            for ( Trinity<TLongList, Long, Long> trinity : trMap.values() ) {
                 long fromId = trinity.a.get( trinity.a.size() - 1 );
                 long nodeId = trinity.b;
                 long toId = trinity.c;
@@ -108,19 +105,17 @@ public class PostgreDataSource implements DataSource {
             // create map for matrices<Matrix, List<Node.Id>>
             Map<Matrix<Long, Double>, TLongList> turnTableMap = new HashMap<>();
             // fill the map with matrices
-            iterator = matrixMap.iterator();
-            while ( iterator.hasNext() ) {
+            for ( Map.Entry<Long, Matrix<Long, Double>> entry : matrixMap.entrySet() ) {
                 TLongList nodeList;
                 // - if the map does not contain matrix, insert matrix and create a new list, add node to the list
-                if ( !turnTableMap.containsKey( iterator.value() ) ) {
+                if ( !turnTableMap.containsKey( entry.getValue() ) ) {
                     nodeList = new TLongArrayList();
-                    turnTableMap.put( iterator.value(), nodeList );
+                    turnTableMap.put( entry.getValue(), nodeList );
                 } else {
                     // - otherwise just add node to the existing list
-                    nodeList = turnTableMap.get( iterator.value() );
+                    nodeList = turnTableMap.get( entry.getValue() );
                 }
-                nodeList.add( iterator.key() );
-                iterator.advance();
+                nodeList.add( entry.getKey() );
             }
             // foreach matrix in the map insert turntable and its nodes
             int ttCounter = 1;
@@ -147,6 +142,7 @@ public class PostgreDataSource implements DataSource {
                 }
                 ttCounter++;
             }
+            target.close();
         } catch ( SQLException ex ) {
             throw new IOException( ex );
         }

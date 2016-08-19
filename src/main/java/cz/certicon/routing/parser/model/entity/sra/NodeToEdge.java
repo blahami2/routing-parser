@@ -15,5 +15,5 @@ import lombok.Value;
 public class NodeToEdge {
     long nodeId;
     long edgeId;
-    int order;
+    int position;
 }

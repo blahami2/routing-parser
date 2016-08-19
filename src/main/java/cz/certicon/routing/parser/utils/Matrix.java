@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
  *
@@ -18,12 +19,22 @@ import lombok.EqualsAndHashCode;
  * @param <K> key type
  * @param <E> element type
  */
+@ToString
 @EqualsAndHashCode( exclude = { "rowMap", "columnMap" } )
 public class Matrix<K, E> {
 
     private final TObjectIntMap<K> rowMap = new TObjectIntHashMap<>();
     private final TObjectIntMap<K> columnMap = new TObjectIntHashMap<>();
     private final List<List<E>> matrix = new ArrayList<>();
+    private final E initValue;
+
+    public Matrix() {
+        this.initValue = null;
+    }
+
+    public Matrix( E initValue ) {
+        this.initValue = initValue;
+    }
 
     public int getRowCount() {
         return matrix.size();
@@ -76,7 +87,7 @@ public class Matrix<K, E> {
             row = new ArrayList<>();
             matrix.add( row );
             for ( int i = 0; i < getColumnCount(); i++ ) {
-                row.add( null );
+                row.add( initValue );
             }
             rowMap.put( rowKey, rowPos );
         } else {
@@ -87,7 +98,7 @@ public class Matrix<K, E> {
         if ( !columnMap.containsKey( columnKey ) ) {
             columnPos = getColumnCount();
             matrix.stream().forEach( ( list ) -> {
-                list.add( null );
+                list.add( initValue );
             } );
             columnMap.put( columnKey, columnPos );
         } else {

@@ -107,12 +107,12 @@ public class SqliteDataTarget implements DataTarget {
         open();
         try {
             if ( nodeToEdgeStatement == null ) {
-                nodeToEdgeStatement = database.prepareStatement( "INSERT INTO node_to_edges (node_id, edge_id, order) VALUES (?, ?, ?))" );
+                nodeToEdgeStatement = database.prepareStatement( "INSERT INTO node_to_edges (node_id, edge_id, position) VALUES (?, ?, ?)" );
             }
             int idx = 1;
             nodeToEdgeStatement.setLong( idx++, nodeToEdge.getNodeId() );
             nodeToEdgeStatement.setLong( idx++, nodeToEdge.getEdgeId() );
-            nodeToEdgeStatement.setInt( idx++, nodeToEdge.getOrder() );
+            nodeToEdgeStatement.setInt( idx++, nodeToEdge.getPosition() );
             nodeToEdgeStatement.addBatch();
             if ( ++nodeToEdgeCounter % batchSize == 0 ) {
                 nodeToEdgeStatement.executeBatch();
@@ -231,9 +231,9 @@ public class SqliteDataTarget implements DataTarget {
                 getStatement().execute( "SELECT load_extension('" + properties.getProperty( "spatialite_path" ) + "')" );
                 getStatement().execute( "SELECT InitSpatialMetadata('WGS84_ONLY')" );
                 // create tables
-                getStatement().execute( "CREATE TABLE edge ("
+                getStatement().execute( "CREATE TABLE edges ("
                         + "id INTEGER NOT NULL PRIMARY KEY,"
-                        + "sourc INTEGER,"
+                        + "source INTEGER,"
                         + "target INTEGER,"
                         + "oneway INTEGER,"
                         + "paid INTEGER,"
@@ -250,7 +250,7 @@ public class SqliteDataTarget implements DataTarget {
                 getStatement().execute( "CREATE TABLE node_to_edges ("
                         + "node_id INTEGER,"
                         + "edge_id INTEGER,"
-                        + "order INTEGER"
+                        + "position INTEGER"
                         + ")" );
                 getStatement().execute( "CREATE TABLE turn_tables ("
                         + "id INTEGER NOT NULL PRIMARY KEY,"

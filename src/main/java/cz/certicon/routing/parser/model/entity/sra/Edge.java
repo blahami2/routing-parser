@@ -17,10 +17,21 @@ public class Edge {
     long id;
     long source;
     long target;
+    int sourcePosition;
+    int targetPosition;
     boolean oneway;
     boolean paid;
+    /**
+     * Length in meters
+     */
     double length;
+    /**
+     * Speed in kmph
+     */
     double speedForward;
+    /**
+     * Speed in kmph
+     */
     double speedBackward;
     String geometry;
 }

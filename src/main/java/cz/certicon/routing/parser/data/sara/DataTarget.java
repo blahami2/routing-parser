@@ -21,8 +21,6 @@ public interface DataTarget {
 
     public void insert( Node node ) throws IOException;
 
-    public void insert( NodeToEdge nodeToEdge ) throws IOException;
-
     public void insert( TurnTable turnRestriction ) throws IOException;
 
     public void insert( TurnTableValue turnRestrictionArray ) throws IOException;

@@ -58,28 +58,20 @@ public class PostgreDataSource implements DataSource {
                     + "JOIN edges_data_routing d ON (e1.data_id = d.id OR e2.data_id = d.id) "
                     + "ORDER BY d.id;" );
             while ( rs.next() ) {
-                Edge edge = new Edge( rs.getLong( "id" ), rs.getLong( "source_id" ), rs.getLong( "target_id" ),
+                long id = rs.getLong( "id" );
+                long sourceId = rs.getLong( "source_id" );
+                long targetId = rs.getLong( "target_id" );
+                // add edge to nodes' matrices
+                Matrix<Long, Double> sourceMatrix = matrixMap.get( sourceId );
+                sourceMatrix.set( id, id, Double.MAX_VALUE );
+                Matrix<Long, Double> targetMatrix = matrixMap.get( targetId );
+                targetMatrix.set( id, id, Double.MAX_VALUE );
+                Edge edge = new Edge( id, sourceId, targetId,
+                        sourceMatrix.getRowKeyPosition( id ), targetMatrix.getRowKeyPosition( id ),
                         rs.getInt( "speed_bw" ) == 0, rs.getBoolean( "is_paid" ),
                         rs.getDouble( "length" ), rs.getInt( "speed_fw" ), rs.getInt( "speed_bw" ), rs.getString( "geom" ) );
-                // add edge to nodes' matrices
-                Matrix<Long, Double> sourceMatrix = matrixMap.get( edge.getSource() );
-                sourceMatrix.set( edge.getId(), edge.getId(), Double.MAX_VALUE );
-                Matrix<Long, Double> targetMatrix = matrixMap.get( edge.getTarget() );
-                targetMatrix.set( edge.getId(), edge.getId(), Double.MAX_VALUE );
                 // insert edges into database
                 target.insert( edge );
-            }
-            // for each node
-            for ( Map.Entry<Long, Matrix<Long, Double>> entry : matrixMap.entrySet() ) {
-                long nodeId = entry.getKey();
-                // get edge keys (edges) and orders
-                Matrix<Long, Double> matrix = entry.getValue();
-                for ( Long rowKey : matrix.getRowKeys() ) {
-                    int order = matrix.getRowKeyPosition( rowKey );
-                    NodeToEdge nodeToEdge = new NodeToEdge( nodeId, rowKey, order );
-                    // insert node, edge_key, edge_id into database
-                    target.insert( nodeToEdge );
-                }
             }
             // read turn restrictions and insert them into matrices
             Map<Long, Trinity<TLongList, Long, Long>> trMap = new HashMap<>();

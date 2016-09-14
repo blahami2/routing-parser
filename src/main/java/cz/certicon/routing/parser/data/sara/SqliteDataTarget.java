@@ -25,8 +25,6 @@ public class SqliteDataTarget implements DataTarget {
     private int edgeCounter = 0;
     private PreparedStatement nodeStatement = null;
     private int nodeCounter = 0;
-    private PreparedStatement nodeToEdgeStatement = null;
-    private int nodeToEdgeCounter = 0;
     private PreparedStatement turnTableStatement = null;
     private int turnTableCounter = 0;
     private PreparedStatement turnTableValueStatement = null;
@@ -57,13 +55,15 @@ public class SqliteDataTarget implements DataTarget {
         open();
         try {
             if ( edgeStatement == null ) {
-                edgeStatement = database.prepareStatement( "INSERT INTO edges (id, source, target, oneway, paid, metric_length, metric_speed_forward, metric_speed_backward, geom) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GeomFromText(?, 4326))" );
+                edgeStatement = database.prepareStatement( "INSERT INTO edges (id, source, target, source_pos, target_pos, oneway, paid, metric_length, metric_speed_forward, metric_speed_backward, geom) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GeomFromText(?, 4326))" );
             }
             int idx = 1;
             edgeStatement.setLong( idx++, edge.getId() );
             edgeStatement.setLong( idx++, edge.getSource() );
             edgeStatement.setLong( idx++, edge.getTarget() );
+            edgeStatement.setLong( idx++, edge.getSourcePosition());
+            edgeStatement.setLong( idx++, edge.getTargetPosition() );
             edgeStatement.setInt( idx++, edge.isOneway() ? 1 : 0 );
             edgeStatement.setInt( idx++, edge.isPaid() ? 1 : 0 );
             edgeStatement.setDouble( idx++, edge.getLength() );
@@ -96,26 +96,6 @@ public class SqliteDataTarget implements DataTarget {
             nodeStatement.addBatch();
             if ( ++nodeCounter % batchSize == 0 ) {
                 nodeStatement.executeBatch();
-            }
-        } catch ( SQLException ex ) {
-            throw new IOException( ex );
-        }
-    }
-
-    @Override
-    public void insert( NodeToEdge nodeToEdge ) throws IOException {
-        open();
-        try {
-            if ( nodeToEdgeStatement == null ) {
-                nodeToEdgeStatement = database.prepareStatement( "INSERT INTO node_to_edges (node_id, edge_id, position) VALUES (?, ?, ?)" );
-            }
-            int idx = 1;
-            nodeToEdgeStatement.setLong( idx++, nodeToEdge.getNodeId() );
-            nodeToEdgeStatement.setLong( idx++, nodeToEdge.getEdgeId() );
-            nodeToEdgeStatement.setInt( idx++, nodeToEdge.getPosition() );
-            nodeToEdgeStatement.addBatch();
-            if ( ++nodeToEdgeCounter % batchSize == 0 ) {
-                nodeToEdgeStatement.executeBatch();
             }
         } catch ( SQLException ex ) {
             throw new IOException( ex );
@@ -167,7 +147,6 @@ public class SqliteDataTarget implements DataTarget {
         try {
             edgeStatement.executeBatch();
             nodeStatement.executeBatch();
-            nodeToEdgeStatement.executeBatch();
             turnTableStatement.executeBatch();
             turnTableValueStatement.executeBatch();
             database.finish();
@@ -235,6 +214,8 @@ public class SqliteDataTarget implements DataTarget {
                         + "id INTEGER NOT NULL PRIMARY KEY,"
                         + "source INTEGER,"
                         + "target INTEGER,"
+                        + "source_pos INTEGER,"
+                        + "target_pos INTEGER,"
                         + "oneway INTEGER,"
                         + "paid INTEGER,"
                         + "metric_length REAL,"
@@ -247,11 +228,6 @@ public class SqliteDataTarget implements DataTarget {
                         + "turn_table_id INTEGER"
                         + ")" );
                 getStatement().execute( "SELECT AddGeometryColumn('nodes','geom',4326,'POINT','XY')" );
-                getStatement().execute( "CREATE TABLE node_to_edges ("
-                        + "node_id INTEGER,"
-                        + "edge_id INTEGER,"
-                        + "position INTEGER"
-                        + ")" );
                 getStatement().execute( "CREATE TABLE turn_tables ("
                         + "id INTEGER NOT NULL PRIMARY KEY,"
                         + "size INTEGER"
@@ -273,7 +249,6 @@ public class SqliteDataTarget implements DataTarget {
                 if ( "true".equals( executionProperties.getProperty( "index" ) ) ) {
                     getStatement().execute( "CREATE UNIQUE INDEX `idx_id_edges` ON `edges` (`id` ASC)" );
                     getStatement().execute( "CREATE UNIQUE INDEX `idx_id_nodes` ON `nodes` (`id` ASC)" );
-                    getStatement().execute( "CREATE INDEX `idx_node_to_edge` ON `node_to_edges` (`edge_id` ASC)" );
                     getStatement().execute( "SELECT CreateSpatialIndex('edges','geom')" );
                     getStatement().execute( "SELECT CreateSpatialIndex('nodes','geom')" );
                 }

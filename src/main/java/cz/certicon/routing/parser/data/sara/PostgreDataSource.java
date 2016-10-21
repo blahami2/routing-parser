@@ -21,6 +21,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -30,9 +32,19 @@ public class PostgreDataSource implements DataSource {
 
     private final PostgresqlDatabase database;
     private final Properties executionProperties = new Properties();
+    private int areaLevel;
+    private String areaName;
 
     public PostgreDataSource( Properties connectionProperties ) {
         this.database = new PostgresqlDatabase( connectionProperties );
+        this.areaLevel = -1;
+        this.areaName = null;
+    }
+
+    public PostgreDataSource( Properties connectionProperties, int areaLevel, String areaName ) {
+        this.database = new PostgresqlDatabase( connectionProperties );
+        this.areaLevel = areaLevel;
+        this.areaName = areaName;
     }
 
     @Override
@@ -43,7 +55,18 @@ public class PostgreDataSource implements DataSource {
             Map<Long, Node> nodeMap = new HashMap<>();
             Map<Long, Matrix<Long, Double>> matrixMap = new HashMap<>();
             // load nodes and create matrix for each node
-            rs = database.read( "SELECT n.id, ST_AsText(d.geom) AS geom FROM nodes_routing n JOIN nodes_data_routing d ON n.data_id = d.id;" );
+            String query = "SELECT n.id, ST_AsText(d.geom) AS geom FROM nodes_routing n "
+                    + "JOIN nodes_data_routing d ON n.data_id = d.id "
+                    + ( ( areaName != null )
+                            ? ( "JOIN area_connectors ac ON ac.member_type = 'N' AND ac.member_id = d.id "
+                            + "JOIN areas a ON ac.area_id = a.id AND a.name LIKE '" + areaName + "' AND a.admin_level = " + areaLevel + " " )
+                            : "" )
+                    + ";";
+            Logger.getLogger( getClass().getName() ).log( Level.INFO, query );
+            rs = database.read( query );
+            if ( !rs.isBeforeFirst() ) {
+                Logger.getLogger( getClass().getName() ).log( Level.WARNING, "No result for query: {0}", query );
+            }
             while ( rs.next() ) {
                 Node node = new Node( rs.getLong( "id" ), -1, rs.getString( "geom" ) );
                 matrixMap.put( node.getId(), new Matrix<>( 0.0 ) );
@@ -52,19 +75,44 @@ public class PostgreDataSource implements DataSource {
 //                target.insert( node );
             }
             // load edges 
-            rs = database.read( "SELECT DISTINCT d.id, d.is_paid, d.length,  e1.speed AS speed_fw, e2.speed AS speed_bw, ST_AsText(d.geom) AS geom, e1.source_id, e1.target_id "
-                    + "FROM (SELECT * FROM edges_routing WHERE is_forward IS TRUE) AS e1 "
-                    + "FULL OUTER JOIN (SELECT * FROM edges_routing WHERE is_forward IS FALSE) AS e2 ON e1.data_id = e2.data_id "
-                    + "JOIN edges_data_routing d ON (e1.data_id = d.id OR e2.data_id = d.id) "
-                    + "ORDER BY d.id;" );
+            query = "SELECT d.id, d.is_paid, d.length,  e1.speed AS speed_fw, e2.speed AS speed_bw, ST_AsText(d.geom) AS geom, e1.source_id, e1.target_id "
+                    + "FROM " + ( ( areaName != null )
+                            ? ( "area_connectors ac "
+                            + "JOIN areas a ON ac.area_id = a.id AND a.name LIKE '" + areaName + "' AND a.admin_level = " + areaLevel + " AND ac.member_type = 'E' "
+                            + "JOIN edges_data_routing d ON ac.member_id = d.id " )
+                            : "edges_data_routing d " )
+                    + "JOIN (SELECT * FROM edges_routing WHERE is_forward IS TRUE) AS e1 ON e1.data_id = d.id "
+                    + "LEFT OUTER JOIN (SELECT * FROM edges_routing WHERE is_forward IS FALSE) AS e2 ON e2.data_id = d.id "
+                    + "ORDER BY d.id "
+                    + ";";
+//            query = "SELECT DISTINCT d.id, d.is_paid, d.length,  e1.speed AS speed_fw, e2.speed AS speed_bw, ST_AsText(d.geom) AS geom, e1.source_id, e1.target_id "
+//                    + "FROM (SELECT * FROM edges_routing WHERE is_forward IS TRUE) AS e1 "
+//                    + "FULL OUTER JOIN (SELECT * FROM edges_routing WHERE is_forward IS FALSE) AS e2 ON e1.data_id = e2.data_id "
+//                    + "JOIN edges_data_routing d ON (e1.data_id = d.id OR e2.data_id = d.id) "
+//                    + ( ( areaName != null )
+//                            ? ( "JOIN area_connectors ac ON ac.member_type = 'E' AND ac.member_id = d.id "
+//                            + "JOIN areas a ON ac.area_id = a.id AND a.name LIKE '" + areaName + "' AND a.admin_level = " + areaLevel + " " )
+//                            : "" )
+//                    + "ORDER BY d.id;";
+            Logger.getLogger( getClass().getName() ).log( Level.INFO, query );
+            rs = database.read( query );
+            if ( !rs.isBeforeFirst() ) {
+                Logger.getLogger( getClass().getName() ).log( Level.WARNING, "No result for query: {0}", query );
+            }
             while ( rs.next() ) {
                 long id = rs.getLong( "id" );
                 long sourceId = rs.getLong( "source_id" );
                 long targetId = rs.getLong( "target_id" );
                 // add edge to nodes' matrices
                 Matrix<Long, Double> sourceMatrix = matrixMap.get( sourceId );
+                if ( sourceMatrix == null ) {
+                    throw new IllegalStateException( "Unknown node id: " + sourceId );
+                }
                 sourceMatrix.set( id, id, Double.MAX_VALUE );
                 Matrix<Long, Double> targetMatrix = matrixMap.get( targetId );
+                if ( targetMatrix == null ) {
+                    throw new IllegalStateException( "Unknown node id: " + targetId );
+                }
                 targetMatrix.set( id, id, Double.MAX_VALUE );
                 Edge edge = new Edge( id, sourceId, targetId,
                         sourceMatrix.getRowKeyPosition( id ), targetMatrix.getRowKeyPosition( id ),
@@ -76,12 +124,37 @@ public class PostgreDataSource implements DataSource {
             // read turn restrictions and insert them into matrices
             Map<Long, Trinity<TLongList, Long, Long>> trMap = new HashMap<>();
             // - create map for trs
-            rs = database.read( "SELECT * FROM turn_restrictions;" );
+            query = "SELECT DISTINCT tr.* FROM turn_restrictions tr "
+                    + ( ( areaName != null )
+                            ? ( "JOIN nodes_routing n ON tr.via_id = n.id "
+                            + "JOIN nodes_data_routing d ON n.data_id = d.id "
+                            + "JOIN area_connectors ac ON ac.member_type = 'N' AND ac.member_id = d.id "
+                            + "JOIN areas a ON ac.area_id = a.id AND a.name LIKE '" + areaName + "' AND a.admin_level = " + areaLevel + " " )
+                            : "" )
+                    + ";";
+            Logger.getLogger( getClass().getName() ).log( Level.INFO, query );
+            rs = database.read( query );
+            if ( !rs.isBeforeFirst() ) {
+                Logger.getLogger( getClass().getName() ).log( Level.WARNING, "No result for query: {0}", query );
+            }
             while ( rs.next() ) {
                 trMap.put( rs.getLong( "from_id" ), new Trinity<>( new TLongArrayList(), rs.getLong( "via_id" ), rs.getLong( "to_id" ) ) );
             }
             // - add edges
-            rs = database.read( "SELECT * FROM turn_restrictions_array ORDER BY position;" );
+            query = "SELECT tra.* FROM turn_restrictions_array tra "
+                    + ( ( areaName != null )
+                            ? ( "JOIN turn_restrictions tr ON tra.array_id = tr.from_id "
+                            + "JOIN nodes_routing n ON tr.via_id = n.id "
+                            + "JOIN nodes_data_routing d ON n.data_id = d.id "
+                            + "JOIN area_connectors ac ON ac.member_type = 'N' AND ac.member_id = d.id "
+                            + "JOIN areas a ON ac.area_id = a.id AND a.name LIKE '" + areaName + "' AND a.admin_level = " + areaLevel + " " )
+                            : "" )
+                    + "ORDER BY position ;";
+            Logger.getLogger( getClass().getName() ).log( Level.INFO, query );
+            rs = database.read( query );
+            if ( !rs.isBeforeFirst() ) {
+                Logger.getLogger( getClass().getName() ).log( Level.WARNING, "No result for query: {0}", query );
+            }
             while ( rs.next() ) {
                 Trinity<TLongList, Long, Long> trinity = trMap.get( rs.getLong( "array_id" ) );
                 trinity.a.add( rs.getLong( "edge_id" ) );
@@ -145,6 +218,12 @@ public class PostgreDataSource implements DataSource {
         properties.entrySet().stream().forEach( ( entry ) -> {
             executionProperties.put( entry.getKey(), entry.getValue() );
         } );
+        if ( executionProperties.containsKey( "area_level" ) ) {
+            areaLevel = Integer.parseInt( executionProperties.getProperty( "area_level" ) );
+        }
+        if ( executionProperties.containsKey( "area_name" ) ) {
+            areaName = executionProperties.getProperty( "area_name" );
+        }
     }
 
     private static class PostgresqlDatabase extends AbstractServerDatabase<ResultSet, String> {

@@ -19,8 +19,8 @@ public class PropertyCommand implements Command {
     private final String key;
 
     public PropertyCommand( String key, String value ) {
+        this.key = key;
         this.value = value;
-        this.key = value;
     }
 
     @Override

@@ -4,3 +4,4 @@ target
 nbproject
 nbactions.xml
 !target/route-1.0-SNAPSHOT-jar-with-dependencies.jar
+*.zip

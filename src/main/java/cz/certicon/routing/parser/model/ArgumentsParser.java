@@ -15,6 +15,7 @@ import cz.certicon.routing.utils.cor.ChainGroup;
 import cz.certicon.routing.utils.cor.ChainLink;
 import cz.certicon.routing.utils.cor.XorChainGroup;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -77,8 +78,10 @@ public class ArgumentsParser {
 
         @Override
         public boolean execute( String t ) {
+//            System.out.println( getClass().getSimpleName() + " -> " + t );
             String[] split = t.split( "=" );
             onParse( new PropertyCommand( split[0], split[1] ) );
+//            System.out.println( getClass().getSimpleName() + " -> " + Arrays.toString( split ) );
             return false;
         }
 

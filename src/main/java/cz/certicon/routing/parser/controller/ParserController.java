@@ -124,6 +124,7 @@ public class ParserController {
     }
 
     public void setProperty( String key, String value ) {
+//        System.out.println( "setting property: " + key + "=" + value );
         properties.put( key, value );
     }
 

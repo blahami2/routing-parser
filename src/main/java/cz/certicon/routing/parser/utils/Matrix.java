@@ -97,9 +97,7 @@ public class Matrix<K, E> {
         int columnPos;
         if ( !columnMap.containsKey( columnKey ) ) {
             columnPos = getColumnCount();
-            matrix.stream().forEach( ( list ) -> {
-                list.add( initValue );
-            } );
+            matrix.stream().forEach( list -> list.add( initValue ) );
             columnMap.put( columnKey, columnPos );
         } else {
             columnPos = columnMap.get( columnKey );
@@ -118,6 +116,29 @@ public class Matrix<K, E> {
     private void checkKey( TObjectIntMap<K> keyMap, K key ) {
         if ( !keyMap.containsKey( key ) ) {
             throw new IllegalArgumentException( "Unknown key: " + key );
+        }
+    }
+
+    /**
+     * Fills in empty holes, maps element (rows/columns) according to their
+     * columns/rows
+     */
+    public void revalidate() {
+        while ( getRowCount() < getColumnCount() ) {
+            int pos = getRowCount();
+            List<E> row = new ArrayList<>();
+            for ( int i = 0; i < getColumnCount(); i++ ) {
+                row.add( initValue );
+            }
+            matrix.add( row );
+            K key = columnMap.keySet().stream().filter( k -> ( columnMap.get( k ) == pos ) ).findAny().orElseThrow( () -> new IllegalStateException( "More columns but no keys available for position: " + pos ) );
+            rowMap.put( key, pos );
+        }
+        while ( getColumnCount() < getRowCount() ) {
+            int pos = getColumnCount();
+            matrix.stream().forEach( list -> list.add( initValue ) );
+            K key = rowMap.keySet().stream().filter( k -> ( rowMap.get( k ) == pos ) ).findAny().orElseThrow( () -> new IllegalStateException( "More rows but no keys available for position: " + pos ) );
+            columnMap.put( key, pos );
         }
     }
 }

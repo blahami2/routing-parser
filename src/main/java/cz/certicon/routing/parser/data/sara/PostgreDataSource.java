@@ -6,6 +6,7 @@
 package cz.certicon.routing.parser.data.sara;
 
 import cz.certicon.routing.data.basic.database.AbstractServerDatabase;
+import cz.certicon.routing.model.basic.Pair;
 import cz.certicon.routing.model.basic.Trinity;
 import cz.certicon.routing.parser.model.entity.sra.*;
 import cz.certicon.routing.parser.utils.Matrix;
@@ -19,8 +20,10 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -99,6 +102,7 @@ public class PostgreDataSource implements DataSource {
             if ( !rs.isBeforeFirst() ) {
                 Logger.getLogger( getClass().getName() ).log( Level.WARNING, "No result for query: {0}", query );
             }
+            Set<Pair<Long, Matrix<Long, Double>>> onewayEdges = new HashSet<>();
             while ( rs.next() ) {
                 long id = rs.getLong( "id" );
                 long sourceId = rs.getLong( "source_id" );
@@ -114,12 +118,24 @@ public class PostgreDataSource implements DataSource {
                     throw new IllegalStateException( "Unknown node id: " + targetId );
                 }
                 targetMatrix.set( id, id, Double.MAX_VALUE );
+                boolean oneway = rs.getInt( "speed_bw" ) == 0;
+                if ( oneway ) {
+                    onewayEdges.add( new Pair<>( id, targetMatrix ) );
+                }
                 Edge edge = new Edge( id, sourceId, targetId,
                         sourceMatrix.getRowKeyPosition( id ), targetMatrix.getRowKeyPosition( id ),
-                        rs.getInt( "speed_bw" ) == 0, rs.getBoolean( "is_paid" ),
+                        oneway, rs.getBoolean( "is_paid" ),
                         rs.getDouble( "length" ), rs.getInt( "speed_fw" ), rs.getInt( "speed_bw" ), rs.getString( "geom" ) );
                 // insert edges into database
                 target.insert( edge );
+            }
+            // consider oneways
+            for ( Pair<Long, Matrix<Long, Double>> onewayEdge : onewayEdges ) {
+                long id = onewayEdge.a;
+                Matrix<Long, Double> targetMatrix = onewayEdge.b;
+                for ( Long rowKey : targetMatrix.getRowKeys() ) {
+                    targetMatrix.set( rowKey, id, Double.MAX_VALUE );
+                }
             }
             // read turn restrictions and insert them into matrices
             Map<Long, Trinity<TLongList, Long, Long>> trMap = new HashMap<>();
@@ -186,6 +202,7 @@ public class PostgreDataSource implements DataSource {
             int ttCounter = 1;
             for ( Map.Entry<Matrix<Long, Double>, TLongList> entry : turnTableMap.entrySet() ) {
                 Matrix<Long, Double> matrix = entry.getKey();
+//                matrix.revalidate();
                 if ( matrix.getRowCount() != matrix.getColumnCount() ) {
                     throw new AssertionError( "Not a square matrix: " + matrix );
                 }

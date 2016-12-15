@@ -19,6 +19,7 @@ import gnu.trove.map.hash.TLongObjectHashMap;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -204,7 +205,28 @@ public class PostgreDataSource implements DataSource {
                 Matrix<Long, Double> matrix = entry.getKey();
 //                matrix.revalidate();
                 if ( matrix.getRowCount() != matrix.getColumnCount() ) {
-                    throw new AssertionError( "Not a square matrix: " + matrix );
+                    Logger.getLogger( this.getClass().getName() ).log( Level.WARNING, "Not a square matrix: {0}", matrix );
+                    Set<Long> columnKeys = matrix.getColumnKeys();
+                    Set<Long> rowKeys = matrix.getRowKeys();
+                    rowKeys.stream().filter( ( rowKey ) -> ( !columnKeys.contains( rowKey ) ) ).forEach( ( rowKey ) -> {
+                        columnKeys.stream().forEach( ( columnKey ) -> {
+                            if ( rowKey.equals( columnKey ) ) {
+                                matrix.set( rowKey, columnKey, Double.MAX_VALUE );
+                            } else {
+                                matrix.set( rowKey, columnKey, Double.valueOf( 0 ) );
+                            }
+                        } );
+                    } );
+                    columnKeys.stream().filter( ( columnKey ) -> ( !rowKeys.contains( columnKey ) ) ).forEach( ( columnKey ) -> {
+                        rowKeys.stream().forEach( ( rowKey ) -> {
+                            if ( rowKey.equals( columnKey ) ) {
+                                matrix.set( rowKey, columnKey, Double.MAX_VALUE );
+                            } else {
+                                matrix.set( rowKey, columnKey, Double.valueOf( 0 ) );
+                            }
+                        } );
+                    } );
+//                    throw new AssertionError( "Not a square matrix: " + matrix );
                 }
                 TLongList nodes = entry.getValue();
                 TurnTable turnTable = new TurnTable( ttCounter, matrix.getRowCount() );

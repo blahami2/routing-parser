@@ -15,7 +15,7 @@ import cz.certicon.routing.parser.view.Input;
 import cz.certicon.routing.parser.view.Output;
 import cz.certicon.routing.parser.view.cmd.CommandLineInput;
 import cz.certicon.routing.utils.measuring.TimeMeasurement;
-import cz.certicon.routing.utils.measuring.TimeUnits;
+import cz.certicon.routing.model.basic.TimeUnits;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
